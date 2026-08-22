@@ -1,6 +1,14 @@
 from pathlib import Path
 from git import Repo
 
+CODE_EXTENSIONS = {
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".vue", ".java", ".go", ".rs",
+    ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".cs", ".swift", ".kt",
+    ".md", ".yaml", ".yml", ".json", ".sql", ".html", ".css", ".sh", ".ipynb",
+    ".toml", ".xml", ".scss", ".sass", ".less", ".tf", ".gradle", ".kts",
+    ".scala", ".dart", ".lua", ".r",
+}
+
 def clone_repo(repo_url: str, clone_dir: str = "data/repos") -> Path:
     """Download a GitHub repo to a local folder."""
     # Turn a URL like "https://github.com/psf/requests" into "requests"
