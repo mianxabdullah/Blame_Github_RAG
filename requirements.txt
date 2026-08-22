@@ -1,0 +1,23 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+# Repo cloning
+GitPython
+
+# Chunking / document handling
+langchain-core
+langchain-text-splitters
+langchain-community
+pandas  # required by NotebookLoader for .ipynb files
+
+# Embeddings
+sentence-transformers
+numpy
+
+# Vector storage
+supabase
+
+# LLM
+langchain-groq
