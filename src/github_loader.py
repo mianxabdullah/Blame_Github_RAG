@@ -9,6 +9,8 @@ CODE_EXTENSIONS = {
     ".scala", ".dart", ".lua", ".r",
 }
 
+SKIP_DIRS = {".git", "node_modules", "venv", "__pycache__"}
+
 def clone_repo(repo_url: str, clone_dir: str = "data/repos") -> Path:
     """Download a GitHub repo to a local folder."""
     # Turn a URL like "https://github.com/psf/requests" into "requests"
