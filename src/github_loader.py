@@ -57,4 +57,22 @@ def load_code_files(repo_dir: Path) -> List[Any]:
             is_matched_filename = filename in CODE_FILENAMES
             if not (is_matched_extension or is_matched_filename):
                 continue
+            try:
+                if file_path.suffix == ".ipynb":
+                    # Extracts just code/markdown cell content, skips execution outputs/metadata noise
+                    loader = NotebookLoader(str(file_path), include_outputs=False)
+                else:
+                    loader = TextLoader(str(file_path), encoding="utf-8")
+ 
+                loaded = loader.load()
+                for doc in loaded:
+                    doc.metadata["source"] = str(file_path)
+                    doc.metadata["file_path"] = str(file_path.relative_to(repo_dir))
+                    doc.metadata["file_name"] = filename
+                    doc.metadata["file_type"] = file_path.suffix or filename  # e.g. "Dockerfile" when there's no suffix
+                docs.extend(loaded)
+            except Exception as e:
+                print(f"Skipped {file_path}: {e}")
+ 
+    print(f"Loaded {len(docs)} code files from {repo_dir}")
     return docs
