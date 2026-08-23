@@ -1,5 +1,8 @@
 from pathlib import Path
 from git import Repo
+from typing import List, Any
+from langchain_community.document_loaders import TextLoader, NotebookLoader
+import os
 
 CODE_EXTENSIONS = {
     ".py", ".js", ".ts", ".jsx", ".tsx", ".vue", ".java", ".go", ".rs",
@@ -39,3 +42,19 @@ def clone_repo(repo_url: str, clone_dir: str = "data/repos") -> Path:
         Repo.clone_from(repo_url, str(dest)) # this is the actual download step, from the GitPython library. It does the same thing as running git clone <url> <folder> in a terminal, just from Python.
 
     return dest
+
+
+def load_code_files(repo_dir: Path) -> List[Any]:
+    """Recursively walk the repo, read each code file, wrap it in a Document."""
+    docs = []
+    for root, dirs, files in os.walk(repo_dir):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for filename in files:
+            if filename in SKIP_FILES:
+                continue
+            file_path = Path(root) / filename
+            is_matched_extension = file_path.suffix in CODE_EXTENSIONS
+            is_matched_filename = filename in CODE_FILENAMES
+            if not (is_matched_extension or is_matched_filename):
+                continue
+    return docs
