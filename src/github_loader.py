@@ -12,6 +12,13 @@ CODE_EXTENSIONS = {
 SKIP_DIRS = {".git", "node_modules", "venv", "__pycache__"}
 SKIP_FILES = {"package-lock.json", "yarn.lock", "poetry.lock", "pnpm-lock.yaml"}
 
+# Files with no extension are matched by exact filename instead, since
+# file_path.suffix is "" for these and would never match CODE_EXTENSIONS.
+CODE_FILENAMES = {
+    "Dockerfile", "Makefile", "CMakeLists.txt", ".gitignore",
+    ".env.example", "LICENSE", "Procfile",
+}
+
 def clone_repo(repo_url: str, clone_dir: str = "data/repos") -> Path:
     """Download a GitHub repo to a local folder."""
     # Turn a URL like "https://github.com/psf/requests" into "requests"
