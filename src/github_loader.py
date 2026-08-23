@@ -76,3 +76,7 @@ def load_code_files(repo_dir: Path) -> List[Any]:
  
     print(f"Loaded {len(docs)} code files from {repo_dir}")
     return docs
+
+def load_github_repo(repo_url: str, clone_dir: str = "data/repos"):
+    repo_dir = clone_repo(repo_url, clone_dir)
+    return load_code_files(repo_dir)
