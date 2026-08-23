@@ -10,6 +10,7 @@ CODE_EXTENSIONS = {
 }
 
 SKIP_DIRS = {".git", "node_modules", "venv", "__pycache__"}
+SKIP_FILES = {"package-lock.json", "yarn.lock", "poetry.lock", "pnpm-lock.yaml"}
 
 def clone_repo(repo_url: str, clone_dir: str = "data/repos") -> Path:
     """Download a GitHub repo to a local folder."""
