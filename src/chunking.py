@@ -47,3 +47,15 @@ def chunk_code(docs: List[Document], chunk_size: int = 1000, chunk_overlap: int 
             """
         else:
             fallback_docs.append(doc) # if the file_type isn't recognized, we add it to fallback_docs so we can split it with the generic chunking() function later.
+
+    all_chunks = []
+ 
+    for language, lang_docs in by_language.items(): # iterate over each language group and split them with the language-aware splitter
+        splitter = RecursiveCharacterTextSplitter.from_language(
+            language=language,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+        lang_chunks = splitter.split_documents(lang_docs) 
+        print(f"{language.value}: {len(lang_docs)} files -> {len(lang_chunks)} chunks")
+        all_chunks.extend(lang_chunks)
