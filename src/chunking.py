@@ -59,3 +59,7 @@ def chunk_code(docs: List[Document], chunk_size: int = 1000, chunk_overlap: int 
         lang_chunks = splitter.split_documents(lang_docs) 
         print(f"{language.value}: {len(lang_docs)} files -> {len(lang_chunks)} chunks")
         all_chunks.extend(lang_chunks)
+
+    if fallback_docs:
+        fallback_chunks = _chunking(fallback_docs, chunk_size, chunk_overlap) # use the generic chunking() function for docs whose file_type isn't recognized
+        all_chunks.extend(fallback_chunks)
