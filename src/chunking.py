@@ -63,3 +63,6 @@ def chunk_code(docs: List[Document], chunk_size: int = 1000, chunk_overlap: int 
     if fallback_docs:
         fallback_chunks = _chunking(fallback_docs, chunk_size, chunk_overlap) # use the generic chunking() function for docs whose file_type isn't recognized
         all_chunks.extend(fallback_chunks)
+
+    print(f"Total code chunks created: {len(all_chunks)} out of {len(docs)} documents.")
+    return all_chunks 
