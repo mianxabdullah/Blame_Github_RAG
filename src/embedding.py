@@ -1,6 +1,7 @@
 from sentence_transformers import SentenceTransformer
 from typing import List
 import numpy as np
+from langchain_core.documents import Document
 
 class EmbeddingManager:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
@@ -38,3 +39,8 @@ class EmbeddingManager:
         except Exception as e:
             print(f"[ERROR] Error generating embeddings: {e}")
             return np.array([])
+
+    def embed_documents(self, chunks: List[Document], batch_size: int = 32) -> np.ndarray:
+        """Convenience wrapper: extract page_content from Documents and embed them."""
+        texts = [chunk.page_content for chunk in chunks]
+        return self.generate_embeddings(texts, batch_size=batch_size)
