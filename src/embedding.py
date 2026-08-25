@@ -48,3 +48,8 @@ class EmbeddingManager:
     def embed_query(self, query: str) -> np.ndarray:
         """Embed a single user query."""
         return self.generate_embeddings([query])
+
+    def get_embedding_dimension(self) -> int:
+        if not self.model:
+            raise ValueError("[ERROR] Model is not loaded. Cannot get embedding dimension.")
+        return self.embedding_dim
