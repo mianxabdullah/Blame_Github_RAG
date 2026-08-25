@@ -1,4 +1,6 @@
 from sentence_transformers import SentenceTransformer
+from typing import List
+import numpy as np
 
 class EmbeddingManager:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
@@ -15,3 +17,24 @@ class EmbeddingManager:
         except Exception as e:
             print(f"[ERROR] Error loading model {self.model_name}: {e}")
             self.model = None
+
+    def generate_embeddings(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
+        """Embed a list of raw strings. Returns array of shape (len(texts), embedding_dim)."""
+        if not self.model:
+            raise ValueError("[ERROR] Model is not loaded. Cannot generate embeddings.")
+        if not texts:
+            print("[INFO] No texts provided, returning empty array.")
+            return np.array([])
+
+        try:
+            embeddings = self.model.encode(
+                texts,
+                batch_size=batch_size,
+                show_progress_bar=True,
+                normalize_embeddings=True,  # unit-length vectors -> cosine similarity == dot product
+            )
+            print(f"[INFO] Generated embeddings for {len(texts)} texts. Shape: {embeddings.shape}")
+            return embeddings
+        except Exception as e:
+            print(f"[ERROR] Error generating embeddings: {e}")
+            return np.array([])
