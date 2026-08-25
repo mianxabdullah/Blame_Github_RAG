@@ -44,3 +44,7 @@ class EmbeddingManager:
         """Convenience wrapper: extract page_content from Documents and embed them."""
         texts = [chunk.page_content for chunk in chunks]
         return self.generate_embeddings(texts, batch_size=batch_size)
+
+    def embed_query(self, query: str) -> np.ndarray:
+        """Embed a single user query."""
+        return self.generate_embeddings([query])
