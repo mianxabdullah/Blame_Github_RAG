@@ -53,3 +53,8 @@ class SupabaseVectorStore:
     def get_count(self, session_id: str) -> int:
         response = self.client.table("chunks").select("id", count="exact").eq("session_id", session_id).execute()
         return response.count or 0
+
+    def clear(self, session_id: str):
+        """Delete all chunks belonging to one session (used when re-indexing with clear_existing=True)."""
+        self.client.table("chunks").delete().eq("session_id", session_id).execute()
+        print(f"[INFO] Cleared chunks for session {session_id}")
