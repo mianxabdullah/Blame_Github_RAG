@@ -27,3 +27,9 @@ class SupabaseVectorStore:
                 "metadata": meta,
                 "embedding": vector.tolist(),  # Supabase's client expects a plain list, not numpy array
             })
+
+        # Insert in batches - Supabase/Postgres has payload size limits on a single request
+        batch_size = 200
+        for i in range(0, len(rows), batch_size):
+            batch = rows[i:i + batch_size]
+            self.client.table("chunks").insert(batch).execute()
