@@ -36,9 +36,9 @@ class SupabaseVectorStore:
 
     def search(self, query_embedding: np.ndarray, session_id: str, top_k: int = 5) -> List[dict]:
         """Similarity search scoped to one session, via the match_chunks SQL function."""
-        response = self.client.rpc("match_chunks", {
-            "query_embedding": query_embedding.tolist() if hasattr(query_embedding, "tolist") else list(query_embedding),
-            "match_session_id": session_id,
+        response = self.client.rpc("match_chunks", { # match_chunks is a Postgres function defined in the Supabase SQL schema. It takes a vector and returns the closest rows in the chunks table.
+            "query_embedding": query_embedding.tolist() if hasattr(query_embedding, "tolist") else list(query_embedding), # Supabase's client expects a plain list, not numpy array
+            "match_session_id": session_id, # only return rows tagged with this session_id
             "match_count": top_k,
         }).execute()
 
@@ -49,3 +49,7 @@ class SupabaseVectorStore:
                 "distance": 1 - row.get("similarity", 0),  # keep shape consistent with old FAISS distance semantics
             })
         return results
+
+    def get_count(self, session_id: str) -> int:
+        response = self.client.table("chunks").select("id", count="exact").eq("session_id", session_id).execute()
+        return response.count or 0
