@@ -33,3 +33,19 @@ class SupabaseVectorStore:
         for i in range(0, len(rows), batch_size):
             batch = rows[i:i + batch_size]
             self.client.table("chunks").insert(batch).execute()
+
+    def search(self, query_embedding: np.ndarray, session_id: str, top_k: int = 5) -> List[dict]:
+        """Similarity search scoped to one session, via the match_chunks SQL function."""
+        response = self.client.rpc("match_chunks", {
+            "query_embedding": query_embedding.tolist() if hasattr(query_embedding, "tolist") else list(query_embedding),
+            "match_session_id": session_id,
+            "match_count": top_k,
+        }).execute()
+
+        results = []
+        for row in response.data:
+            results.append({
+                "metadata": row.get("metadata"),
+                "distance": 1 - row.get("similarity", 0),  # keep shape consistent with old FAISS distance semantics
+            })
+        return results
