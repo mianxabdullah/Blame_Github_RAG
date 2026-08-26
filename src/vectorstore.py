@@ -1,5 +1,7 @@
 import os
 from supabase import create_client, Client
+import numpy as np
+from typing import List, Any
 
 class SupabaseVectorStore:
     """Stores and searches chunk embeddings in Supabase (Postgres + pgvector).
@@ -12,3 +14,16 @@ class SupabaseVectorStore:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in .env")
         self.client: Client = create_client(url, key)
         print("[INFO] Connected to Supabase")
+
+    def add_embeddings(self, embeddings: np.ndarray, metadatas: List[Any], session_id: str, repo_url: str = None):
+        """Insert chunks + their vectors, tagged with session_id."""
+        rows = []
+        for meta, vector in zip(metadatas, embeddings):
+            rows.append({
+                "session_id": session_id,
+                "repo_url": repo_url,
+                "file_path": meta.get("file_path"),
+                "text": meta.get("text", ""),
+                "metadata": meta,
+                "embedding": vector.tolist(),  # Supabase's client expects a plain list, not numpy array
+            })
