@@ -34,3 +34,8 @@ class RAGSearch:
         self.vectorstore.add_embeddings(chunk_vectors, metadatas, session_id, repo_url=repo_url)
 
         return {"repo_url": repo_url, "files_indexed": len(docs), "chunks_indexed": len(chunks)}
+
+    def search_and_summarize(self, query: str, session_id: str, top_k: int = 5) -> dict:
+        if self.vectorstore.get_count(session_id) == 0:
+            return {"answer": "No repo has been indexed yet. Call /index-repo first.", "sources": []}
+
