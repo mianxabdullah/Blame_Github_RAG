@@ -59,3 +59,15 @@ class RAGSearch:
                 continue
             seen.add(key)
             sources.append({"file_path": key})
+
+        prompt = f"""You are a code assistant answering questions about a specific codebase.
+Answer using ONLY the code context below. Reference specific file paths and functions where relevant.
+
+If the context does not clearly answer the question, say so explicitly instead of guessing.
+Do not infer facts (like a project's name or purpose) from unrelated config files, boilerplate,
+or generic templates (e.g. devcontainer configs, license headers) unless they genuinely state it.
+
+Question: {query}
+Code Context:{context}
+Answer:"""
+
