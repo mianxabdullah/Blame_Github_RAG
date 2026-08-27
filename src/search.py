@@ -42,3 +42,20 @@ class RAGSearch:
         query_embedding = self.embedding_manager.embed_query(query)[0]  # embed_query returns shape (1, dim), we need the single vector
         results = self.vectorstore.search(query_embedding, session_id, top_k=top_k)
         valid_results = [r for r in results if r["metadata"]]
+        
+        if not valid_results:
+            return {"answer": "No relevant code found for that question.", "sources": []}
+
+        texts = [r["metadata"].get("text", "") for r in valid_results]
+        context = "\n\n".join(texts)
+
+        # filter already seen file paths to avoid duplicates in sources
+        seen = set()
+        sources = []
+        for r in valid_results:
+            meta = r["metadata"]
+            key = meta.get("file_path")
+            if key in seen:
+                continue
+            seen.add(key)
+            sources.append({"file_path": key})
