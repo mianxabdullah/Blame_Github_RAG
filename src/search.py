@@ -71,3 +71,11 @@ Question: {query}
 Code Context:{context}
 Answer:"""
 
+        try:
+            response = self.llm.invoke(prompt)
+            answer = response.content
+        except Exception as e:
+            print(f"[ERROR] LLM call failed: {e}")
+            answer = "Something went wrong generating the answer. Please try again."
+
+        return {"answer": answer, "sources": sources}
