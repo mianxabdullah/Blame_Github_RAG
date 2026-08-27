@@ -39,3 +39,6 @@ class RAGSearch:
         if self.vectorstore.get_count(session_id) == 0:
             return {"answer": "No repo has been indexed yet. Call /index-repo first.", "sources": []}
 
+        query_embedding = self.embedding_manager.embed_query(query)[0]  # embed_query returns shape (1, dim), we need the single vector
+        results = self.vectorstore.search(query_embedding, session_id, top_k=top_k)
+        valid_results = [r for r in results if r["metadata"]]
