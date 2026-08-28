@@ -27,3 +27,11 @@ class Source(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     sources: list[Source]
+
+@app.get("/")
+def home():
+    return {
+        "message": "GitHub Codebase RAG API",
+        "status": "active",
+        "endpoints": "/health, /index-repo, /query",
+    }
