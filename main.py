@@ -17,3 +17,11 @@ class IndexResponse(BaseModel):
     repo_url: str
     files_indexed: int
     chunks_indexed: int
+
+class QueryRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+
+class Source(BaseModel):
+    file_path: str | None
