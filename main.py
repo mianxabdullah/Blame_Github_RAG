@@ -12,7 +12,6 @@ class IndexRequest(BaseModel):
     repo_url: str
     clear_existing: bool = True
 
-
 class IndexResponse(BaseModel):
     repo_url: str
     files_indexed: int
@@ -22,6 +21,9 @@ class QueryRequest(BaseModel):
     query: str
     top_k: int = 5
 
-
 class Source(BaseModel):
     file_path: str | None
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: list[Source]
