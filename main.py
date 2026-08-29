@@ -35,3 +35,7 @@ def home():
         "status": "active",
         "endpoints": "/health, /index-repo, /query",
     }
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
