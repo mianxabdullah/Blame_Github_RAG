@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from src.search import RAGSearch
 
@@ -39,3 +39,11 @@ def home():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/index-repo", response_model=IndexResponse)
+def index_repo(request: IndexRequest, x_session_id: str = Header(...)):
+    try:
+        result = rag_search.index_repo(request.repo_url, session_id=x_session_id, clear_existing=request.clear_existing)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to index repo: {e}")
