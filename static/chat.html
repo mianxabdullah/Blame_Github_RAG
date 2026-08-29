@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>blame — ask your codebase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+<style>
+  :root {
+    --bg: #0E0E12;
+    --surface: #17171D;
+    --surface-raised: #1D1D24;
+    --border: #2A2A33;
+    --text: #EDEDF0;
+    --text-muted: #8E8E99;
+    --text-faint: #5C5C68;
+    --accent: #8B7CF6;
+    --accent-soft: #232035;
+    --accent-hover: #A296FA;
+    --match: #34D399;
+    --miss: #F87171;
+    --font-display: 'Sora', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .shell {
+    width: 100%;
+    margin: 0 auto;
+    padding: 56px 5vw 80px;
+  }
+
+  .brand-row {
+    margin-bottom: 4px;
+  }
+  .brand-mark {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 42px;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    background: linear-gradient(120deg, #A78BFA 10%, #F472B6 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+  }
+  .brand-tag {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 8px 0 28px;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .setup-card.hidden { display: none; }
+
+  .repo-pill {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    margin-bottom: 28px;
+  }
+  .repo-pill.visible { display: flex; }
+  .repo-pill:hover { border-color: var(--accent); }
+  .repo-pill-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--match); flex-shrink: 0;
+  }
+  .repo-pill-info { min-width: 0; flex: 1; }
+  .repo-pill-name {
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .repo-pill-meta {
+    font-size: 11px; color: var(--text-faint); margin-top: 1px;
+  }
+  .repo-pill-change {
+    font-size: 11.5px; color: var(--accent);
+    flex-shrink: 0; font-weight: 500;
+  }
+  .field { margin-bottom: 12px; }
+  .field:last-of-type { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+  .field-row { display: flex; gap: 8px; }
+  .field input[type="password"],
+  .field input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text-faint); }
+
+  .run-btn {
+    background: var(--accent);
+    color: #0E0E12;
+    border: none;
+    border-radius: 8px;
+    padding: 0 18px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .run-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .run-btn:disabled { background: var(--border); color: var(--text-faint); cursor: not-allowed; }
+
+  .toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--text-muted);
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .toggle-row.hidden { display: none; }
+  .toggle-row input { accent-color: var(--accent); }
+
+  #indexStatus {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-top: 12px;
+    min-height: 16px;
+  }
+  #indexStatus.success { color: var(--match); }
+  #indexStatus.error { color: var(--miss); }
+  #indexStatus.pending { color: var(--text-muted); }
+  #indexStatus.pending::after { content: ""; animation: dots 1.2s steps(4, end) infinite; }
+  @keyframes dots {
+    0%, 20% { content: ""; } 40% { content: "."; } 60% { content: ".."; } 80%, 100% { content: "..."; }
+  }
+
+  .empty-state {
+    color: var(--text-faint);
+    font-size: 13.5px;
+    text-align: center;
+    padding: 56px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+
+  #timeline { position: relative; }
+
+  .turn {
+    position: relative;
+    padding-left: 26px;
+    padding-bottom: 30px;
+    animation: rise 0.25s ease-out;
+  }
+  .turn:last-child { padding-bottom: 0; }
+  .turn::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 16px;
+    bottom: -14px;
+    width: 1px;
+    background: var(--border);
+  }
+  .turn:last-child::before { display: none; }
+
+  .turn-dot {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--match);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .turn-dot.miss { background: var(--miss); }
+  .turn-dot.pending { background: var(--text-faint); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  .turn-hash {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .turn-q {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  .turn-a {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #D6D6DC;
+  }
+  .turn-a p:first-child { margin-top: 0; }
+  .turn-a p:last-child { margin-bottom: 0; }
+  .turn-a pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+  }
+  .turn-a code {
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    color: var(--accent-hover);
+  }
+  .turn-a pre code { background: none; padding: 0; color: #D6D6DC; }
+
+  .turn-a table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .turn-a th, .turn-a td {
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    text-align: left;
+  }
+  .turn-a th {
+    background: var(--bg);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .turn-a tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  .turn-a ul, .turn-a ol { padding-left: 20px; margin: 10px 0; }
+  .turn-a li { margin-bottom: 4px; }
+  .turn-a strong { color: var(--text); font-weight: 600; }
+
+  .sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .lang-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  .turn-error .turn-a { border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); color: #FFB4B4; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .turn, #indexStatus.pending::after, .turn-dot.pending { animation: none; }
+  }
+
+  .ask-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 4px 4px 14px;
+    transition: border-color 0.15s;
+  }
+  .ask-row:focus-within { border-color: var(--accent); }
+  #query {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 11px 6px;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    background: transparent;
+    color: var(--text);
+    min-width: 0;
+  }
+  #query:disabled { color: var(--text-faint); }
+  #query::placeholder { color: var(--text-faint); }
+  #sendBtn {
+    background: var(--accent);
+    color: #0E0E12;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 16px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  #sendBtn:hover:not(:disabled) { background: var(--accent-hover); }
+  #sendBtn:disabled { background: var(--border); color: var(--text-faint); cursor: not-allowed; }
+
+  @media (max-width: 520px) {
+    .field-row { flex-direction: column; }
+    .run-btn { width: 100%; padding: 10px; }
+    .brand-mark { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="brand-row">
+    <span class="brand-mark">blame</span>
+  </div>
+  <div class="brand-tag">ask your codebase, not a teammate</div>
+
+  <div class="setup-card" id="setupCard">
+    <div class="field">
+      <label for="repoUrl">Repository URL</label>
+      <div class="field-row">
+        <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
+        <button class="run-btn" id="indexBtn" onclick="indexRepo()">Index</button>
+      </div>
+    </div>
+    <div class="toggle-row hidden" id="keepExistingRow">
+      <input type="checkbox" id="keepExisting" />
+      <label for="keepExisting">Keep previously indexed repo(s)</label>
+    </div>
+    <div id="indexStatus"></div>
+  </div>
+
+  <div class="repo-pill" id="repoPill" onclick="showSetupCard()">
+    <div class="repo-pill-dot"></div>
+    <div class="repo-pill-info">
+      <div class="repo-pill-name" id="pillRepoName"></div>
+      <div class="repo-pill-meta" id="pillRepoMeta"></div>
+    </div>
+    <div class="repo-pill-change">Change</div>
+  </div>
+
+  <div id="timeline">
+    <div class="empty-state" id="emptyState">Index a repository to get started</div>
+  </div>
+
+  <div class="ask-row">
+    <input type="text" id="query" placeholder="Index a repo first..." disabled onkeydown="if(event.key==='Enter') sendQuery()">
+    <button id="sendBtn" onclick="sendQuery()" disabled>Ask</button>
+  </div>
+
+</div>
+
+<script>
+  const BASE_URL = window.location.origin;
+  // One random ID per page load - keeps this browser tab's indexed repo separate from
+  // anyone else using the same deployed app at the same time.
+  const SESSION_ID = crypto.randomUUID();
+
+  const LANG_COLORS = {
+    ".py": "#3572A5", ".js": "#f1e05a", ".jsx": "#f1e05a", ".ts": "#3178c6", ".tsx": "#3178c6",
+    ".java": "#b07219", ".go": "#00ADD8", ".rs": "#dea584", ".c": "#8b8b8b", ".cpp": "#f34b7d",
+    ".rb": "#e07a5f", ".php": "#8e9fd4", ".cs": "#6bcf7f", ".swift": "#F05138", ".kt": "#A97BFF",
+    ".md": "#7aa2f7", ".json": "#8E8E99", ".yaml": "#e07a5f", ".yml": "#e07a5f", ".html": "#e78a53",
+    ".css": "#b48ead", ".sh": "#89e051", ".sql": "#e38c00", ".toml": "#c68b59", ".ipynb": "#DA5B0B",
+  };
+
+  function langColor(path) {
+    if (!path) return "#8E8E99";
+    const dot = path.lastIndexOf(".");
+    const ext = dot >= 0 ? path.slice(dot) : "";
+    return LANG_COLORS[ext] || "#8E8E99";
+  }
+
+  function shortHash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
+    return h.toString(16).padStart(7, "0").slice(0, 7);
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showSetupCard() {
+    document.getElementById("setupCard").classList.remove("hidden");
+    document.getElementById("repoPill").classList.remove("visible");
+  }
+
+  function showRepoPill(repoUrl, filesIndexed, chunksIndexed) {
+    const repoName = repoUrl.replace(/\/+$/, "").split("/").pop();
+    document.getElementById("pillRepoName").textContent = repoName;
+    document.getElementById("pillRepoMeta").textContent = `${filesIndexed} files · ${chunksIndexed} chunks`;
+    document.getElementById("setupCard").classList.add("hidden");
+    document.getElementById("repoPill").classList.add("visible");
+  }
+
+  async function indexRepo() {
+    const repoUrl = document.getElementById("repoUrl").value.trim();
+    const statusDiv = document.getElementById("indexStatus");
+    const indexBtn = document.getElementById("indexBtn");
+    const keepExisting = document.getElementById("keepExisting").checked;
+
+    if (!repoUrl) { alert("Enter a GitHub repo URL."); return; }
+
+    statusDiv.className = "pending";
+    statusDiv.textContent = "Cloning and indexing";
+    indexBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${BASE_URL}/index-repo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Session-Id": SESSION_ID },
+        body: JSON.stringify({ repo_url: repoUrl, clear_existing: !keepExisting })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      statusDiv.className = "success";
+      statusDiv.textContent = `Indexed ${data.files_indexed} files / ${data.chunks_indexed} chunks — ${data.repo_url}`;
+
+      document.getElementById("query").disabled = false;
+      document.getElementById("query").placeholder = "Ask a question about the code...";
+      document.getElementById("sendBtn").disabled = false;
+
+      // Reset the conversation - old answers referred to the previous repo, no longer relevant
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = '<div class="empty-state" id="emptyState">Ask a question to get started</div>';
+
+      showRepoPill(data.repo_url, data.files_indexed, data.chunks_indexed);
+      document.getElementById("keepExistingRow").classList.remove("hidden");
+
+    } catch (e) {
+      statusDiv.className = "error";
+      statusDiv.textContent = `Error: ${e.message}`;
+    } finally {
+      indexBtn.disabled = false;
+    }
+  }
+
+  async function sendQuery() {
+    const queryInput = document.getElementById("query");
+    const query = queryInput.value.trim();
+    const timeline = document.getElementById("timeline");
+    const sendBtn = document.getElementById("sendBtn");
+
+    if (!query) return;
+
+    const existingEmptyState = document.getElementById("emptyState");
+    if (existingEmptyState) existingEmptyState.remove();
+
+    const hash = shortHash(query + Date.now());
+    const turn = document.createElement("div");
+    turn.className = "turn";
+    turn.innerHTML = `
+      <div class="turn-dot pending"></div>
+      <div class="turn-hash">${hash}</div>
+      <div class="turn-q">${escapeHtml(query)}</div>
+      <div class="turn-a">Thinking…</div>
+    `;
+    timeline.appendChild(turn);
+
+    queryInput.value = "";
+    sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${BASE_URL}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Session-Id": SESSION_ID },
+        body: JSON.stringify({ query: query, top_k: 5 })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Request failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      const dot = turn.querySelector(".turn-dot");
+      const answerDiv = turn.querySelector(".turn-a");
+
+      const hasSources = data.sources && data.sources.length > 0;
+      dot.className = "turn-dot" + (hasSources ? "" : " miss");
+
+      let sourcesHtml = "";
+      if (hasSources) {
+        const chips = data.sources.map(s => {
+          const path = s.file_path || "unknown";
+          return `<span class="source-chip"><span class="lang-dot" style="background:${langColor(path)}"></span>${escapeHtml(path)}</span>`;
+        }).join("");
+        sourcesHtml = `<div class="sources">${chips}</div>`;
+      }
+
+      answerDiv.innerHTML = DOMPurify.sanitize(marked.parse(data.answer)) + sourcesHtml;
+
+    } catch (e) {
+      turn.classList.add("turn-error");
+      turn.querySelector(".turn-dot").className = "turn-dot miss";
+      turn.querySelector(".turn-a").textContent = `Error: ${e.message}`;
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
