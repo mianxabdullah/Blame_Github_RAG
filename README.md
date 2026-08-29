@@ -36,7 +36,7 @@ Store in Supabase (Postgres + pgvector), tagged by session
 Query → embed question → cosine similarity search → top-k relevant chunks
     │
     ▼
-Groq (Llama 3.3 70B) synthesizes a grounded answer from retrieved code
+Groq synthesizes a grounded answer from retrieved code
     │
     ▼
 Answer + file citations, rendered in a git-log-style conversation timeline
@@ -49,7 +49,7 @@ Answer + file citations, rendered in a git-log-style conversation timeline
 - **Broad file coverage** — 30+ extensions plus filename-based matching for extensionless files (`Dockerfile`, `Makefile`, `.gitignore`), including Jupyter notebooks (code cells only, outputs stripped)
 - **Anti-hallucination prompting** — the model is explicitly instructed to say "I don't know" rather than infer facts from unrelated boilerplate (e.g. mistaking a devcontainer config for the project name)
 - **Deduplication** — re-indexing the same repo doesn't create duplicate chunks
-- **Session-isolated multi-user storage** — safe for multiple people to use the same deployed instance concurrently without their indexed repos colliding
+- **Session-isolated storage** — architected so multiple users can safely use the same instance concurrently without their indexed repos colliding
 - **File citations on every answer** — know exactly which files the model actually looked at
 
 ## Tech stack
@@ -99,6 +99,15 @@ Open `http://127.0.0.1:8000/static/chat.html`
 | `/query` | POST | `{"query": "...", "top_k": 5}` — ask a question about the indexed repo |
 | `/health` | GET | Health check |
 
+## Deployment note
+
+The app runs locally without issue. Deploying it to a free-tier PaaS (Render, Railway, etc.) currently requires more than the standard 512MB RAM allowance, since `sentence-transformers`/PyTorch alone approach that limit on load — before the web server, FastAPI, or any request handling even begins. Two viable paths forward, not yet implemented:
+
+1. Deploy to a tier with ≥2GB RAM
+2. Replace local embedding inference with a hosted embeddings API (removes PyTorch from the deployed footprint entirely, and would also enable a bring-your-own-key mode for public, cost-free hosting)
+
+Left as a known, documented tradeoff rather than a silent limitation.
+
 ## Design decisions worth mentioning
 
 - **Language-aware chunking over naive splitting**: early versions used a plain character-count splitter, which regularly cut functions in half. Switching to `RecursiveCharacterTextSplitter.from_language()` fixed retrieval quality noticeably for code-heavy queries.
@@ -107,10 +116,10 @@ Open `http://127.0.0.1:8000/static/chat.html`
 
 ## Possible next steps
 
+- Replace local embeddings with a hosted API to unblock free-tier deployment
 - Background/async indexing for large repos (currently synchronous, blocks the request)
 - Streaming LLM responses instead of waiting for the full answer
 - Support for private repos (GitHub token auth)
-- Bring-your-own-API-key mode for fully public, cost-free deployment
 
 ## License
 
