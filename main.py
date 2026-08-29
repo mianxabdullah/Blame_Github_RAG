@@ -47,3 +47,7 @@ def index_repo(request: IndexRequest, x_session_id: str = Header(...)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to index repo: {e}")
+
+@app.post("/query", response_model=QueryResponse)
+def query(request: QueryRequest, x_session_id: str = Header(...)):
+    return rag_search.search_and_summarize(request.query, session_id=x_session_id, top_k=request.top_k)
