@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from src.search import RAGSearch
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="GitHub Codebase RAG API")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # One shared instance - loads the embedding model + LLM client once at startup.
 # Different users stay isolated via the X-Session-Id header, not separate instances.
